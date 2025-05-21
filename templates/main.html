@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% block title %}<title style="color: black; background-color: #00B1A9">Resume Parser</title> {% endblock %}
+{% block head %}
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" 
+  href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.4.0/min/dropzone.min.css"/>
+
+  <link rel="stylesheet" 
+    href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.4.0/min/basic.min.css"/>
+
+  <script type="application/javascript" 
+    src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.4.0/min/dropzone.min.js">
+  </script>
+  
+  <style>
+    body {
+      background-color: #FFFFFF;
+      font-family: Arial;
+      font-size: 18px;
+      margin-left: 80px;
+      /* Adjusted margin */
+    }
+      #chatbox {
+        margin-left: auto;
+        margin-right: auto;
+        width: 40%;
+        margin-top: 60px;
+      }
+      #userInput {
+        margin-left: auto;
+        margin-right: auto;
+        width: 40%;
+        margin-top: 60px;
+      }
+      #textInput {
+        width: 90%;
+        border: none;
+        border-bottom: 3px solid black;
+        font-family: monospace;
+        font-size: 17px;
+      }
+      .userText {
+        font-family: monospace;
+        font-size: 17px;
+        text-align: right;
+        line-height: 30px;
+      }
+      .userText span {
+        background-color: #808080;
+        padding: 1rem;
+        border-radius: 2px;
+      }
+      .botText {
+
+        font-family: monospace;
+        font-size: 17px;
+        text-align: left;
+        line-height: 30px;
+      }
+      .botText span {
+        border-radius: 15px;
+        box-sizing: border-box;
+        margin-left: 1rem !important;
+        background-color:rgba(57, 192, 237,.2);
+        padding: 1rem;
+        border-radius: 2px;
+      }
+      #tidbit {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 300px;
+      }
+      .boxed {
+        margin-left: auto;
+        margin-right: auto;
+        width: 78%;
+        margin-top: 60px;
+        border: 1px solid green;
+      }
+  </style>
+</head>
+{% endblock %}  
+{% block body %}
+<body>
+  <section>
+    <div class="boxed">
+      <form id="chatForm" method="POST">
+          <div>
+              <div id="chatbox">
+                  <p class="botText">
+                      <span>Hi! I'm your CV Parser Chatbot</span>
+                  </p>
+              </div>
+              <div id="userInput">
+                  <input id="textInput" type="text" name="msg" placeholder="Message" />
+                  <!-- Replace the file input with a label and hidden file input -->
+                  <label for="file_results" class="file-icon-label"></label>
+                  <input type="file" name="file_results" id="file_results" accept=".pdf,.docx,.doc" />
+                  <input type="button" value="Send" onclick="getBotResponse()" />
+              </div>
+          </div>
+      </form>
+      <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+      <script>
+          function getBotResponse() {
+            var rawText = $("#textInput").val();
+            var fileInput = $("#file_results")[0].files[0];
+  
+            // Create a FormData object to send both text and file data
+            var formData = new FormData();
+            formData.append("msg", rawText);
+            formData.append("file", fileInput);
+  
+            var userHtml = '<p class="userText"><span>' + rawText + "</span></p>";
+            $("#textInput").val("");
+            $("#chatbox").append(userHtml);
+            document
+                .getElementById("userInput")
+                .scrollIntoView({ block: "start", behavior: "smooth" });
+  
+            $.ajax({
+                url: "/get",
+                type: "POST",
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (data) {
+                    var botHtml = '<p class="botText"><span>' + data + "</span></p>";
+                    $("#chatbox").append(botHtml);
+                    document
+                        .getElementById("userInput")
+                        .scrollIntoView({ block: "start", behavior: "smooth" });
+                }
+            });
+          }
+      </script>
+    </div>
+  
+
+  </section>
+  <!-- WebSocket JavaScript library (if not already included) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+</body>
+
+
+{% endblock %}
+</html>
