@@ -36,7 +36,7 @@ Recruitment often involves a labor-intensive and time-consuming task of screenin
 
 2. Create a virtual environment and activate it:
     ```bash
-    python -m venv venv
+    py -3.10 -m venv venv
     source venv/bin/activate  # On Windows use `venv\Scripts\activate`
     ```
 
