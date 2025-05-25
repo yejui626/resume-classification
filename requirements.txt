@@ -1,9 +1,9 @@
-PyPDF2
-pandas
-nltk
+fastapi
+uvicorn
 torch
-scikit-learn
-tensorflow
+joblib
+nltk
+PyPDF2
+keras
 numpy
-streamlit
-ipykernel
+re

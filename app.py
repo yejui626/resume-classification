@@ -1,9 +1,6 @@
-import os
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-
-import streamlit as st
+from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import JSONResponse
 import torch
-import torch.nn as nn
 import joblib
 import numpy as np
 import re
@@ -12,21 +9,11 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from keras.preprocessing.sequence import pad_sequences
-import PyPDF2
 
 # Ensure NLTK resources are available
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt_tab')
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    nltk.download('stopwords')
-try:
-    nltk.data.find('corpora/wordnet')
-except LookupError:
-    nltk.download('wordnet')
+nltk.download('punkt_tab', quiet=True)
+nltk.download('stopwords', quiet=True)
+nltk.download('wordnet', quiet=True)
 
 # Preprocessing function (must match training)
 lemmatizer = WordNetLemmatizer()
@@ -48,6 +35,7 @@ class LSTMClassifier(nn.Module):
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
         self.fc = nn.Linear(hidden_dim, output_dim)
+
     def forward(self, x):
         x = self.embedding(x.long())
         lstm_out, _ = self.lstm(x)
@@ -55,35 +43,37 @@ class LSTMClassifier(nn.Module):
         return self.fc(final_out)
 
 # Load model and preprocessing objects
-tokenizer = joblib.load("tokenizer.pkl")
-label_encoder = joblib.load("label_encoder.pkl")
-max_len = joblib.load("max_len.pkl")
+tokenizer = joblib.load("model/tokenizer.pkl")
+label_encoder = joblib.load("model/label_encoder.pkl")
+max_len = joblib.load("model/max_len.pkl")
 vocab_size = 5000
 embedding_dim = 128
 hidden_dim = 64
 output_dim = len(label_encoder.classes_)
 model = LSTMClassifier(vocab_size, embedding_dim, hidden_dim, output_dim)
-model.load_state_dict(torch.load("lstm_model.pth", map_location=torch.device('cpu')))
+model.load_state_dict(torch.load("model/lstm_model.pth", map_location=torch.device('cpu')))
 model.eval()
 
-# Streamlit UI
-st.title("Resume Category Classifier")
-st.write("Upload a resume PDF to predict its category.")
+# FastAPI app
+app = FastAPI()
 
-uploaded_file = st.file_uploader("Upload PDF file", type=["pdf"])
+@app.post("/predict/")
+async def predict(file: UploadFile = File(...)):
+    contents = await file.read()
+    text = extract_text_from_pdf(contents)
+    cleaned = clean_text(text)
+    seq = tokenizer.texts_to_sequences([cleaned])
+    padded = pad_sequences(seq, maxlen=max_len, padding="post")
+    sample_tensor = torch.tensor(padded, dtype=torch.float32)
 
-if st.button("Predict Category"):
-    if uploaded_file is None:
-        st.warning("Please upload a PDF file.")
-    else:
-        # Extract text from uploaded PDF
-        reader = PyPDF2.PdfReader(uploaded_file)
-        text = " ".join([page.extract_text().replace("\n", " ") for page in reader.pages if page.extract_text()])
-        cleaned = clean_text(text)
-        seq = tokenizer.texts_to_sequences([cleaned])
-        padded = pad_sequences(seq, maxlen=max_len, padding="post")
-        sample_tensor = torch.tensor(padded, dtype=torch.float32)
-        with torch.no_grad():
-            output = model(sample_tensor)
-            predicted_label = torch.argmax(output, dim=1).item()
-        st.success(f"Predicted Category: {label_encoder.inverse_transform([predicted_label])[0]}")
+    with torch.no_grad():
+        output = model(sample_tensor)
+        predicted_label = torch.argmax(output, dim=1).item()
+
+    return JSONResponse(content={"predicted_category": label_encoder.inverse_transform([predicted_label])[0]})
+
+def extract_text_from_pdf(contents):
+    from PyPDF2 import PdfReader
+    reader = PdfReader(contents)
+    text = " ".join([page.extract_text().replace("\n", " ") for page in reader.pages if page.extract_text()])
+    return text

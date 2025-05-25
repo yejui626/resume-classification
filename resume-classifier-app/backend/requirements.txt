@@ -1,9 +1,0 @@
-fastapi
-uvicorn
-torch
-joblib
-nltk
-PyPDF2
-keras
-numpy
-re
