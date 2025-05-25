@@ -1,3 +1,6 @@
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import streamlit as st
 import torch
 import torch.nn as nn
@@ -11,10 +14,19 @@ from nltk.stem import WordNetLemmatizer
 from keras.preprocessing.sequence import pad_sequences
 import PyPDF2
 
-# Download NLTK resources if not already present
-nltk.download("stopwords")
-nltk.download("punkt")
-nltk.download("wordnet")
+# Ensure NLTK resources are available
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords')
+try:
+    nltk.data.find('corpora/wordnet')
+except LookupError:
+    nltk.download('wordnet')
 
 # Preprocessing function (must match training)
 lemmatizer = WordNetLemmatizer()
