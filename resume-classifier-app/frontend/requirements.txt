@@ -1,0 +1,8 @@
+streamlit
+PyPDF2
+requests
+nltk
+torch
+joblib
+keras
+```
