@@ -9,6 +9,9 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from keras.preprocessing.sequence import pad_sequences
+import torch.nn as nn
+from PyPDF2 import PdfReader
+from io import BytesIO
 
 # Ensure NLTK resources are available
 nltk.download('punkt_tab', quiet=True)
@@ -73,7 +76,8 @@ async def predict(file: UploadFile = File(...)):
     return JSONResponse(content={"predicted_category": label_encoder.inverse_transform([predicted_label])[0]})
 
 def extract_text_from_pdf(contents):
-    from PyPDF2 import PdfReader
-    reader = PdfReader(contents)
+
+    pdf_stream = BytesIO(contents)
+    reader = PdfReader(pdf_stream)
     text = " ".join([page.extract_text().replace("\n", " ") for page in reader.pages if page.extract_text()])
     return text
